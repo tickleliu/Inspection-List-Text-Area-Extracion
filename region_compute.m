@@ -1,7 +1,8 @@
 close all;
 clear all;
 clc;
-A  = imread('0118_7.jpg');
+filename = '0118_7.jpg';
+A  = imread(filename);
 I = A;
 [m,n,l] = size(A); %获得尺寸
 W_cuts = 3;
@@ -96,7 +97,7 @@ for k = 2:length(lines)
         d2 = abs(det([Q2-Q1;P2-Q1]))/norm(Q2-Q1);
         d3 = abs(det([P2-P1;Q1-P1]))/norm(P2-P1);
         d4 = abs(det([P2-P1;Q2-P1]))/norm(P2-P1);
-        if max([d1, d2, d3, d4]) < 100 
+        if max([d1, d2, d3, d4]) < 100
             P = [Q1; Q2; P1; P2];
             P = sortrows(P); % 合并线段
             xys(l, :) = [P(1,1), P(4,1), P(1,2), P(4,2)];
@@ -111,6 +112,8 @@ for k = 2:length(lines)
     end
 end
 
+xys = xys(1:count, :);
+
 %% 结果作图
 for k = 1:count
     xy = [xys(k, 1), xys(k, 3); xys(k, 2), xys(k, 4)];
@@ -119,6 +122,29 @@ for k = 1:count
     plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');%终点
 end
 hold off
+
+%% 计算斜率，删除斜率过大的点
+
+k = (xys(:, 3) - xys(:, 4)) ./ (xys(:, 1) - xys(:, 2));
+v_h = length(find(abs(k) < 10)) / count;
+if v_h >= 0.5
+    xys = sortrows(xys, 4);
+    for i = 1 : length(find(abs(k) < 10)) - 1
+        up = min([xys(i,4), xys(i, 3)]);
+        down = max([xys(i + 1,4), xys(i + 1, 3)]);
+        sub_image =  I(up : down, :, : );
+        imwrite(sub_image, [filename(1: end - 4), '_', num2str(i), '.jpg']);
+    end
+else
+    xys = sortrows(xys, 2);
+    for i = 1 : length(find(abs(k) >= 10)) - 1
+        left = min([xys(i,1), xys(i, 2)]);
+        right = max([xys(i + 1,1), xys(i + 1, 2)]);        
+        sub_image =  I(:, left: right, : );
+        imwrite(sub_image, [filename(1: end - 4), '_', num2str(i), '.jpg']);
+    end
+end
+
 
 function int_image_range2 = filtervalley(int_image_range)
 % use 5 * 5 Laplace of Gaussion(LoG) to calc edge
